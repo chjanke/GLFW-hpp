@@ -756,4 +756,51 @@ namespace glfw {
 		GLFWwindow* m_handle;
 	};
 	
+	/* window builder */
+
+	namespace detail {
+		template<class T, class VAR_T>
+		struct is_variant_member;
+
+		template<class T, class... VAR_TS>
+		struct is_variant_member<T, std::variant<VAR_TS...>>
+			: public std::disjunction<std::is_same<T, VAR_TS>...> {};
+
+		template<typename, typename>
+		inline constexpr bool is_variant_member_v = false;
+
+		template<class T, class... VAR_TS>
+		inline constexpr bool is_variant_member_v<T, std::variant<VAR_TS...>> = is_variant_member < T, std::variant<VAR_TS...>>::value;
+	}
+
+
+	class window_builder {
+	public:
+		template<class ...hint_ts>
+		explicit window_builder(hint_ts&& ... hints) {
+			static_assert((detail::is_variant_member_v<hint_ts, attributes::window_hints> && ...));
+			(m_hints.emplace_back(std::forward<hint_ts>(hints)), ...);
+		}
+		static void apply_hint(attributes::hint const& windowHint) { glfwWindowHint(static_cast<int>(windowHint.hint), static_cast<int>(windowHint.value)); }
+		static void apply_hint(attributes::value_hint const& windowHint) { glfwWindowHint(static_cast<int>(windowHint.hint), static_cast<int>(windowHint.value)); }
+		static void apply_hint(attributes::opengl_profile_hint const& windowHint) { glfwWindowHint(GLFW_OPENGL_PROFILE, static_cast<int>(windowHint.profile)); }
+		static void apply_hint(attributes::robustness_hint const& windowHint) { glfwWindowHint(GLFW_CONTEXT_ROBUSTNESS, static_cast<int>(windowHint.robustness)); }
+		static void apply_hint(attributes::client_api_hint const& windowHint) { glfwWindowHint(GLFW_CLIENT_API, static_cast<int>(windowHint.api)); }
+		static void apply_hint(attributes::context_creation_api_hint const& windowHint) { glfwWindowHint(GLFW_CONTEXT_CREATION_API, static_cast<int>(windowHint.api)); }
+		static void apply_hint(attributes::context_release_behaviour_hint const& windowHint) { glfwWindowHint(GLFW_CONTEXT_RELEASE_BEHAVIOR, static_cast<int>(windowHint.behaviour)); }
+		static void apply_hint(attributes::string_hint const& windowHint) { glfwWindowHintString(static_cast<int>(windowHint.hint), windowHint.value.c_str()); }
+		static void restore_defaults() { glfwDefaultWindowHints(); }
+
+		window create(window_size size, std::string_view title, std::optional<monitor> fullscreenLocation = std::nullopt, window* sharedContext = nullptr) {
+			for (auto& hint : m_hints) {
+				std::visit([](auto& hint) { window_builder::apply_hint(hint);}, hint);
+			}
+			auto win = window{ size, title, fullscreenLocation, sharedContext };
+			window_builder::restore_defaults();
+			return win;
+		}
+	private:
+		std::vector<attributes::window_hints> m_hints;
+	};
+	
 }
