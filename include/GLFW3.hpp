@@ -590,4 +590,170 @@ namespace glfw {
 		GLFWwindow* m_handle;
 	};
 	
+	/* Non-owning window type - this won't destroy the window automatically.
+	 * The window api is duplicated here */
+	 //TODO: consider forwarding window/window_ref function calls to detail::window_impl to avoid maintainance effort due to duplicate functions
+	class window_ref {
+	public:
+		using client_api_type = attributes::client_api_type;
+		using context_creation_api_type = attributes::context_creation_api_type;
+		using context_version = attributes::context_version;
+		using opengl_profile_type = attributes::opengl_profile_type;
+		using context_robustness_type = attributes::context_robustness_type;
+
+		explicit window_ref(GLFWwindow* window) : m_handle(window) {}
+		explicit window_ref(window window) : m_handle(window) {}
+
+		void make_fullscreen(monitor fsTargetMonitor, std::optional<video_mode> videoMode = std::nullopt) {
+			if (videoMode.has_value()) {
+				//fullscreen with specific video mode
+				glfwSetWindowMonitor(m_handle, fsTargetMonitor, glfw::DONT_CARE, glfw::DONT_CARE, videoMode->resolution.width, videoMode->resolution.height, videoMode->refresh.rate);
+			}
+			else {
+				//windowed fullscreen mode
+				auto curVideoMode = fsTargetMonitor.get_current_video_mode(); //TODO: handle full screen -> windowed fullscreen, need a location to store the previous video mode
+				glfwSetWindowMonitor(m_handle, fsTargetMonitor, glfw::DONT_CARE, glfw::DONT_CARE, curVideoMode.resolution.width, curVideoMode.resolution.height, curVideoMode.refresh.rate);
+			}
+		}
+
+		void make_windowed_fullscreen(monitor fsTargetMonitor) { make_fullscreen(fsTargetMonitor, std::nullopt); }
+
+		void make_windowed(window_position position, window_size size) { glfwSetWindowMonitor(m_handle, nullptr, position.x, position.y, size.width, size.height, glfw::DONT_CARE); }
+
+		void minimize() { glfwIconifyWindow(m_handle); }
+
+		bool is_minimized() const { return glfwGetWindowAttrib(m_handle, GLFW_ICONIFIED) == glfw::TRUE; }
+
+		void maximize() { glfwMaximizeWindow(m_handle); }
+
+		bool is_maximized() const { return glfwGetWindowAttrib(m_handle, GLFW_MAXIMIZED) == glfw::TRUE; }
+
+		void restore() { glfwRestoreWindow(m_handle); }
+
+		void hide() { glfwHideWindow(m_handle); }
+
+		void show() { glfwShowWindow(m_handle); }
+
+		bool is_visible() const { return glfwGetWindowAttrib(m_handle, GLFW_VISIBLE) == glfw::TRUE; }
+
+		void set_focus() { glfwFocusWindow(m_handle); }
+
+		bool has_focus() const { return glfwGetWindowAttrib(m_handle, GLFW_FOCUSED) == glfw::TRUE; }
+
+		void request_attention() { glfwRequestWindowAttention(m_handle); }
+
+		void set_resizable(bool canResize) { glfwSetWindowAttrib(m_handle, GLFW_RESIZABLE, canResize ? glfw::TRUE : glfw::FALSE); }
+
+		bool is_resizable() const { return glfwGetWindowAttrib(m_handle, GLFW_RESIZABLE) == glfw::TRUE; }
+
+		void set_decorated(bool hasDecoration) { glfwSetWindowAttrib(m_handle, GLFW_DECORATED, hasDecoration ? glfw::TRUE : glfw::FALSE); }
+
+		bool is_decorated() const { return glfwGetWindowAttrib(m_handle, GLFW_DECORATED) == glfw::TRUE; }
+
+		void set_floating(bool floating) { glfwSetWindowAttrib(m_handle, GLFW_FLOATING, floating ? glfw::TRUE : glfw::FALSE); }
+
+		bool is_floating() const { return glfwGetWindowAttrib(m_handle, GLFW_FLOATING) == glfw::TRUE; }
+
+		void set_minimize_on_focus_loss(bool minimizeOnFocusLoss) { glfwSetWindowAttrib(m_handle, GLFW_AUTO_ICONIFY, minimizeOnFocusLoss ? glfw::TRUE : glfw::FALSE); }
+
+		bool is_minimized_on_focus_loss() const { return glfwGetWindowAttrib(m_handle, GLFW_AUTO_ICONIFY) == glfw::TRUE; }
+
+		void set_focus_on_show(bool focusOnShow) { glfwSetWindowAttrib(m_handle, GLFW_FOCUS_ON_SHOW, focusOnShow ? glfw::TRUE : glfw::FALSE); }
+
+		bool is_focused_on_show() const { return glfwGetWindowAttrib(m_handle, GLFW_FOCUS_ON_SHOW) == glfw::TRUE; }
+
+		bool get_close_request() { return glfwWindowShouldClose(m_handle); }
+
+		void set_close_request(bool value = true) { glfwSetWindowShouldClose(m_handle, value ? glfw::TRUE : glfw::FALSE); }
+
+		bool is_hovered() const { return glfwGetWindowAttrib(m_handle, GLFW_HOVERED) == glfw::TRUE; }
+
+		client_api_type get_client_api() const {
+			return client_api_type{ glfwGetWindowAttrib(m_handle, GLFW_CLIENT_API) };
+		}
+
+		context_creation_api_type get_context_creation_api() const { return context_creation_api_type{ glfwGetWindowAttrib(m_handle, GLFW_CONTEXT_CREATION_API) }; }
+
+		context_version get_context_version() const {
+			return context_version{ glfwGetWindowAttrib(m_handle, GLFW_CONTEXT_VERSION_MAJOR), glfwGetWindowAttrib(m_handle, GLFW_CONTEXT_VERSION_MINOR), glfwGetWindowAttrib(m_handle, GLFW_CONTEXT_REVISION) };
+		}
+
+		bool is_context_forward_compatible() const { return glfwGetWindowAttrib(m_handle, GLFW_OPENGL_FORWARD_COMPAT) == glfw::TRUE; }
+
+		bool is_debug_context() const { return glfwGetWindowAttrib(m_handle, GLFW_OPENGL_DEBUG_CONTEXT) == glfw::TRUE; }
+
+		opengl_profile_type get_opengl_profile() const { return opengl_profile_type{ glfwGetWindowAttrib(m_handle, GLFW_OPENGL_PROFILE) }; }
+
+		context_robustness_type get_context_robustness() const { return context_robustness_type{ glfwGetWindowAttrib(m_handle, GLFW_CONTEXT_ROBUSTNESS) }; }
+
+
+
+		template<class T>
+		std::remove_cv_t<std::remove_reference_t<std::remove_pointer_t<T>>>* get_user_pointer() const { return static_cast<T*>(glfwGetWindowUserPointer(m_handle)); }
+
+		template<class T>
+		T set_user_pointer(T userPointer) {
+			static_assert(std::is_pointer_v<T>, "set_user_pointer only accepts pointer types");
+			glfwSetWindowUserPointer(m_handle, static_cast<void*>(userPointer));
+		}
+
+		void resize(window_size size) { glfwSetWindowSize(m_handle, size.width, size.height); }
+
+		window_size size() const {
+			window_size size;
+			glfwGetWindowSize(m_handle, &size.width, &size.height);
+			return size;
+		}
+
+		window_frame get_window_frame() const {
+			window_frame frame;
+			glfwGetWindowFrameSize(m_handle, &frame.left, &frame.top, &frame.right, &frame.bottom);
+			return frame;
+		}
+
+		framebuffer get_framebuffer() const {
+			framebuffer fb;
+			glfwGetFramebufferSize(m_handle, &fb.width, &fb.height);
+			return fb;
+		}
+
+		bool has_framebuffer_alpha() const { return glfwGetWindowAttrib(m_handle, GLFW_TRANSPARENT_FRAMEBUFFER) == glfw::TRUE; }
+
+		void swap_buffers() { glfwSwapBuffers(m_handle); }
+
+		float get_opacity() const { return glfwGetWindowOpacity(m_handle); }
+
+		void set_opacity(float opacity) { glfwSetWindowOpacity(m_handle, opacity); }
+
+		window_content_scale get_content_scale() const {
+			window_content_scale scale;
+			glfwGetWindowContentScale(m_handle, &scale.xScale, &scale.yScale);
+			return scale;
+		}
+
+		void set_size_limit(window_size_limit limit) { glfwSetWindowSizeLimits(m_handle, limit.minWidth, limit.minHeight, limit.maxWidth, limit.maxHeight); }
+
+		void set_aspect_ratio(aspect_ratio aspect) { glfwSetWindowAspectRatio(m_handle, aspect.num, aspect.denom); }
+
+		window_position get_position() const {
+			window_position pos;
+			glfwGetWindowPos(m_handle, &pos.x, &pos.y);
+			return pos;
+		}
+
+		void set_position(window_position pos) { glfwSetWindowPos(m_handle, pos.x, pos.y); }
+
+		void get_title(std::string_view title) const { glfwSetWindowTitle(m_handle, title.data()); }
+		/* empty vector has .data = nullptr -> reset to default icon */
+		void set_icon_image(std::vector<icon_image> imageCandidates) { glfwSetWindowIcon(m_handle, static_cast<int>(imageCandidates.size()), imageCandidates.data()); }
+
+		std::optional<monitor> get_fullscreen_monitor() const {
+			GLFWmonitor* mon = glfwGetWindowMonitor(m_handle);
+			return mon ? monitor{ mon } : std::optional<monitor>{ std::nullopt };
+		}
+
+	private:
+		GLFWwindow* m_handle;
+	};
+	
 }
