@@ -6,7 +6,9 @@
 #include <type_traits>
 #include <variant>
 #include <optional>
-
+#include <functional>
+#include <unordered_map>
+#include <cstdint>
 
 namespace glfw {
 
@@ -802,5 +804,185 @@ namespace glfw {
 	private:
 		std::vector<attributes::window_hints> m_hints;
 	};
+	
+	/************************************************************************************
+	 *																					*
+	 *									 CALLBACK TYPES									*
+	 *																					*
+	 ************************************************************************************/
+
+	enum class monitor_event_type : int {
+		CONNECTED = GLFW_CONNECTED,
+		DISCONNECTED = GLFW_DISCONNECTED,
+	};
+
+	struct monitor_event {
+		monitor monitorObject;
+		monitor_event_type monitorStatus;
+	};
+
+	enum class error_type : int {
+		NO_ERROR = GLFW_NO_ERROR,
+		NOT_INITIALIZED = GLFW_NOT_INITIALIZED,
+		NO_CURRENT_CONTEXT = GLFW_NO_CURRENT_CONTEXT,
+		INVALID_ENUM = GLFW_INVALID_ENUM,
+		INVALID_VALUE = GLFW_INVALID_VALUE,
+		OUT_OF_MEMORY = GLFW_OUT_OF_MEMORY,
+		API_UNAVAILABLE = GLFW_API_UNAVAILABLE,
+		VERSION_UNAVAILABLE = GLFW_VERSION_UNAVAILABLE,
+		PLATFORM_ERROR = GLFW_PLATFORM_ERROR,
+		FORMAT_UNAVAILABLE = GLFW_FORMAT_UNAVAILABLE,
+		NO_WINDOW_CONTEXT = GLFW_NO_WINDOW_CONTEXT,
+	};
+
+	struct error {
+		error_type errorType;
+		std::string_view description;
+	};
+
+	enum window_event_type : uint16_t {
+		POSITION_CHANGED = 1 << 0,
+		SIZE_CHANGED = 1 << 1,
+		FRAMEBUFFER_SIZE_CHANGED = 1 << 2,
+		CONTENT_SCALE_CHANGED = 1 << 3,
+		FOCUS_CHANGED = 1 << 4,
+		MINIMIZE_STATE_CHANGED = 1 << 5,
+		MAXIMIZE_STATE_CHANGED = 1 << 6,
+		CONTENT_NEEDS_REFRESH = 1 << 7,
+		CLOSE_REQUESTED = 1 << 8,
+	};
+
+	namespace detail {
+		struct window_callback {
+			std::function<void(window_ref)> callback;
+			uint16_t mask;
+		};
+
+		struct glfw_callbacks {
+			static std::function<void(error)> error_callback;
+			static std::function<void(monitor_event)> monitor_callback;
+			static std::unordered_map<GLFWwindow*, window_callback> window_callbacks;
+
+			static void glfw_monitor_callback(GLFWmonitor* glfwMonitor, int eventType) {
+				glfw_callbacks::monitor_callback(monitor_event{ monitor{ glfwMonitor }, monitor_event_type{eventType} });
+			}
+
+			static inline void glfw_error_callback(int error, const char* description) {
+				glfw_callbacks::error_callback(glfw::error{ error_type{ error }, std::string_view{ description } });
+			}
+
+			static void glfw_window_pos_callback(GLFWwindow* sourceWindow, int, int) {
+				auto cb = window_callbacks.find(sourceWindow);
+				if (cb == window_callbacks.end()) return;
+				if (cb->second.mask & POSITION_CHANGED) cb->second.callback(window_ref{ sourceWindow });
+			}
+
+			static void glfw_window_size_callback(GLFWwindow* sourceWindow, int, int) {
+				auto cb = window_callbacks.find(sourceWindow);
+				if (cb == window_callbacks.end()) return;
+				if (cb->second.mask & SIZE_CHANGED) cb->second.callback(window_ref{ sourceWindow });
+			}
+
+			static void glfw_framebuffer_size_callback(GLFWwindow* sourceWindow, int, int) {
+				auto cb = window_callbacks.find(sourceWindow);
+				if (cb == window_callbacks.end()) return;
+				if (cb->second.mask & FRAMEBUFFER_SIZE_CHANGED) cb->second.callback(window_ref{ sourceWindow });
+			}
+
+			static void glfw_window_content_scale_callback(GLFWwindow* sourceWindow, float, float) {
+				auto cb = window_callbacks.find(sourceWindow);
+				if (cb == window_callbacks.end()) return;
+				if (cb->second.mask & CONTENT_SCALE_CHANGED) cb->second.callback(window_ref{ sourceWindow });
+			}
+
+			static void glfw_window_focus_callback(GLFWwindow* sourceWindow, int) {
+				auto cb = window_callbacks.find(sourceWindow);
+				if (cb == window_callbacks.end()) return;
+				if (cb->second.mask & FOCUS_CHANGED) cb->second.callback(window_ref{ sourceWindow });
+			}
+
+			static void glfw_window_minimize_callback(GLFWwindow* sourceWindow, int) {
+				auto cb = window_callbacks.find(sourceWindow);
+				if (cb == window_callbacks.end()) return;
+				if (cb->second.mask & MINIMIZE_STATE_CHANGED) cb->second.callback(window_ref{ sourceWindow });
+			}
+
+			static void glfw_window_maximize_callback(GLFWwindow* sourceWindow, int) {
+				auto cb = window_callbacks.find(sourceWindow);
+				if (cb == window_callbacks.end()) return;
+				if (cb->second.mask & MAXIMIZE_STATE_CHANGED) cb->second.callback(window_ref{ sourceWindow });
+			}
+
+			static void glfw_window_refresh_callback(GLFWwindow* sourceWindow) {
+				auto cb = window_callbacks.find(sourceWindow);
+				if (cb == window_callbacks.end()) return;
+				if (cb->second.mask & CONTENT_NEEDS_REFRESH) cb->second.callback(window_ref{ sourceWindow });
+			}
+			static void glfw_window_close_callback(GLFWwindow* sourceWindow) {
+				auto cb = window_callbacks.find(sourceWindow);
+				if (cb == window_callbacks.end()) return;
+				if (cb->second.mask & CLOSE_REQUESTED) cb->second.callback(window_ref{ sourceWindow });
+			}
+		};
+
+	}
+
+
+	namespace monitor_events {
+
+		template<class MonitorCallback>
+		static inline void set_monitor_event_callback(MonitorCallback&& callback) {
+			static_assert(std::is_invocable_v<MonitorCallback, monitor_event>);
+			detail::glfw_callbacks::monitor_callback = std::forward<MonitorCallback>(callback);
+			glfwSetMonitorCallback(&detail::glfw_callbacks::glfw_monitor_callback);
+		}
+
+	};
+
+
+	namespace window_events {
+
+		template<class WindowCallback>
+		static inline void set_window_event_handler(GLFWwindow* window, WindowCallback&& callback, window_event_type mask) {
+			static_assert(std::is_invocable_v<WindowCallback, window_ref>);
+
+			detail::glfw_callbacks::window_callbacks[window] = detail::window_callback{ std::forward<WindowCallback>(callback), mask };
+
+			glfwSetWindowPosCallback(window, (mask & POSITION_CHANGED) == 1 ? &detail::glfw_callbacks::glfw_window_pos_callback : nullptr);
+			glfwSetWindowSizeCallback(window, (mask & SIZE_CHANGED) == 1 ? &detail::glfw_callbacks::glfw_window_size_callback : nullptr);
+			glfwSetFramebufferSizeCallback(window, (mask & FRAMEBUFFER_SIZE_CHANGED) == 1 ? &detail::glfw_callbacks::glfw_framebuffer_size_callback : nullptr);
+			glfwSetWindowContentScaleCallback(window, (mask & CONTENT_SCALE_CHANGED) == 1 ? &detail::glfw_callbacks::glfw_window_content_scale_callback : nullptr);
+			glfwSetWindowFocusCallback(window, (mask & FOCUS_CHANGED) == 1 ? &detail::glfw_callbacks::glfw_window_focus_callback : nullptr);
+			glfwSetWindowIconifyCallback(window, (mask & MINIMIZE_STATE_CHANGED) == 1 ? &detail::glfw_callbacks::glfw_window_minimize_callback : nullptr);
+			glfwSetWindowMaximizeCallback(window, (mask & MAXIMIZE_STATE_CHANGED) == 1 ? &detail::glfw_callbacks::glfw_window_maximize_callback : nullptr);
+			glfwSetWindowRefreshCallback(window, (mask & CONTENT_NEEDS_REFRESH) == 1 ? &detail::glfw_callbacks::glfw_window_refresh_callback : nullptr);
+			glfwSetWindowCloseCallback(window, (mask & CLOSE_REQUESTED) == 1 ? &detail::glfw_callbacks::glfw_window_close_callback : nullptr);
+		}
+
+	}
+
+
+	namespace errors {
+
+		template<class ErrorCallback>
+		static inline void set_error_callback(ErrorCallback&& callback) {
+			static_assert(std::is_invocable_v<ErrorCallback, error>);
+			detail::glfw_callbacks::error_callback = std::forward<ErrorCallback>(callback);
+			glfwSetErrorCallback(&detail::glfw_callbacks::glfw_error_callback);
+		}
+
+		static inline error getError() {
+			const char* desc = nullptr;
+			auto err = error_type{ glfwGetError(&desc) };
+			if (desc) return error{ err, std::string_view{desc} };
+			return error{ err, std::string_view{} };
+		}
+
+		static inline error_type getErrorType() {
+			return error_type{ glfwGetError(nullptr) };
+		}
+
+	};
+
 	
 }
