@@ -29,7 +29,7 @@ namespace glfw {
 		glfwPostEmptyEvent();
 	}
 	
-		/************************************************************************************
+	/************************************************************************************
 	 *																					*
 	 *									 LIBRARY INIT									*
 	 *																					*
@@ -64,4 +64,48 @@ namespace glfw {
 			static glfw_lib libInstance;
 		}
 	};
+	
+	
+	namespace detail {
+		struct version_base {
+			version_base() = default;
+			version_base(int majorV, int minorV, int rev) : major(majorV), minor(minorV), revision(rev) {}
+			bool operator==(version_base const& rhs) { return major == rhs.major && minor == rhs.minor && revision == rhs.revision; }
+			bool operator!=(version_base const& rhs) { return !(*this == rhs); }
+			bool operator<(version_base const& rhs) {
+				if (major < rhs.major) return true;
+				if (minor < rhs.minor) return true;
+				if (revision < rhs.revision) return true;
+				return false;
+			}
+			bool operator>(version_base const& rhs) {
+				if (major > rhs.major) return true;
+				if (minor > rhs.minor) return true;
+				if (revision > rhs.revision) return true;
+				return false;
+			}
+			bool operator<=(version_base const& rhs) {
+				if (major <= rhs.major) return true;
+				if (minor <= rhs.minor) return true;
+				if (revision <= rhs.revision) return true;
+				return false;
+			}
+			bool operator>=(version_base const& rhs) {
+				if (major >= rhs.major) return true;
+				if (minor >= rhs.minor) return true;
+				if (revision >= rhs.revision) return true;
+				return false;
+			}
+			int major, minor, revision;
+		};
+	}
+
+
+	struct glfw_version : public detail::version_base {
+		glfw_version() {
+			glfwGetVersion(&major, &minor, &revision);
+		}
+		glfw_version(int major, int minor, int revision) : version_base(major, minor, revision) {}
+	};
+	
 }
