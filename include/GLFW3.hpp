@@ -1034,11 +1034,21 @@ namespace glfw {
 		window_ref window;
 		code_point codepoint;
 	};
+
+	struct cursor_position {
+		double x, y;
+	};
+
+	struct cursor_event {
+		window_ref window;
+		cursor_position pos;
+	};
+
 	namespace detail {
 		struct window_callback {
 			std::function<void(window_ref)> callback;
 			uint16_t mask;
-		};
+		};		
 
 		namespace glfw_callbacks {
 			inline static std::function<void(error)> error_callback;
@@ -1047,6 +1057,7 @@ namespace glfw {
 			inline static std::unordered_map<GLFWwindow*, std::function<void(key_event)>> key_callbacks;
 			inline static std::unordered_map<GLFWwindow*, std::function<void(char_event)>> char_callbacks;
 			inline static std::unordered_map<GLFWwindow*, std::function<void(cursor_event)>> cursor_callbacks;
+
 
 			inline void glfw_monitor_callback(GLFWmonitor* glfwMonitor, int eventType) {
 				glfw_callbacks::monitor_callback(monitor_event{ monitor{ glfwMonitor }, monitor_event_type{eventType} });
@@ -1093,20 +1104,32 @@ namespace glfw {
 				if (auto cb = window_callbacks.find(sourceWindow); cb != window_callbacks.end() && cb->second.mask & CLOSE_REQUESTED && cb->second.callback) cb->second.callback(window_ref{ sourceWindow });
 			}
 
+
 			inline void glfw_key_callback(GLFWwindow* sourceWindow, int key, int scanCode, int action, int modifiers) {
 				if (auto cb = key_callbacks.find(sourceWindow); cb != key_callbacks.end() && cb->second) cb->second(key_event{ window_ref{sourceWindow}, key_type{key}, scanCode, key_action_type{action}, key_modifier_flags{modifiers} });
 			}
-			
+
 			inline void glfw_char_callback(GLFWwindow* sourceWindow, uint32_t codepoint) {
 				if (auto cb = char_callbacks.find(sourceWindow); cb != char_callbacks.end() && cb->second) cb->second(char_event{ window_ref{sourceWindow}, code_point{codepoint} });
+			}
+
+
+			inline void glfw_cursor_callback(GLFWwindow* sourceWindow, double xpos, double ypos) {
+				if (auto cb = cursor_callbacks.find(sourceWindow); cb != cursor_callbacks.end() && cb->second) cb->second(cursor_event{ window_ref{sourceWindow}, cursor_position{xpos,ypos} });
 			}
 		};
 
 	}
 
-	enum class input_mode : int {
+	enum class key_input_mode : int {
 		STICKY_KEYS,
 		LOCK_KEY_MODIFIERS,
+	};
+
+	enum class cursor_input_mode : int {
+		NORMAL = GLFW_CURSOR_NORMAL,
+		DISABLED = GLFW_CURSOR_DISABLED,
+		HIDDEN = GLFW_CURSOR_HIDDEN,
 	};
 
 	namespace input {
@@ -1135,12 +1158,35 @@ namespace glfw {
 			glfwSetCharCallback(window, nullptr);
 		}
 
+		template<class CursorCallback>
+		inline void set_cursor_callback(GLFWwindow* window, CursorCallback&& callback) {
+			static_assert(std::is_invocable_v<CursorCallback, cursor_event>);
+			detail::glfw_callbacks::cursor_callbacks[window] = std::forward<CursorCallback>(callback);
+			glfwSetCursorPosCallback(window, &detail::glfw_callbacks::glfw_cursor_callback);
+		}
+
+		inline void set_cursor_callback(GLFWwindow* window, std::nullptr_t) {
+			detail::glfw_callbacks::cursor_callbacks[window] = nullptr;
+			glfwSetCursorPosCallback(window, nullptr);
+		}
+
 		inline int to_scancode(key_type key) { return glfwGetKeyScancode(static_cast<int>(key)); }
 		inline std::string_view key_name(key_type key) { return std::string_view{ glfwGetKeyName(static_cast<int>(key),0) }; }
 		inline std::string_view key_name(int scancode) { return std::string_view{ glfwGetKeyName(0, scancode) }; }
 
-		inline void set_input_mode_state(GLFWwindow* window, input_mode mode, bool value) { glfwSetInputMode(window, static_cast<int>(mode), value ? TRUE : FALSE); }
+		inline void set_key_input_mode_state(GLFWwindow* window, key_input_mode mode, bool value) { glfwSetInputMode(window, static_cast<int>(mode), value ? TRUE : FALSE); }
 		inline key_action_type get_last_key_action(GLFWwindow* window, key_type key) { return key_action_type{ glfwGetKey(window, static_cast<int>(key)) }; }
+		inline cursor_position get_cursor_position(GLFWwindow* window) {
+			cursor_position pos;
+			glfwGetCursorPos(window, &pos.x, &pos.y);
+			return pos;
+		}
+		inline void set_cursor_input_mode(GLFWwindow* window, cursor_input_mode mode) {
+			glfwSetInputMode(window, GLFW_CURSOR, static_cast<int>(mode));
+		}
+		inline void use_raw_cursor(GLFWwindow* window, bool value = true) {
+			glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, value ? TRUE : FALSE);
+		}
 
 	}
 
