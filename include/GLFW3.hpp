@@ -12,7 +12,7 @@
 
 namespace glfw {
 
-	using icon_image = GLFWimage;
+	using image = GLFWimage;
 	using gamma_ramp = GLFWgammaramp;
 
 	inline constexpr int DONT_CARE = GLFW_DONT_CARE;
@@ -253,6 +253,43 @@ namespace glfw {
 	 *									 WINDOW											*
 	 *																					*
 	 ************************************************************************************/
+
+	struct cursor_hotspot_position {
+		int x, y;
+	};
+
+	enum class standard_cursor_shape : int {
+		ARROW = GLFW_ARROW_CURSOR,
+		IBEAM = GLFW_IBEAM_CURSOR,
+		CROSSHAIR = GLFW_CROSSHAIR_CURSOR,
+		HAND = GLFW_HAND_CURSOR,
+		HRESIZE_ARROW = GLFW_HRESIZE_CURSOR,
+		VRESIZE_ARROW = GLFW_VRESIZE_CURSOR,
+	};
+
+	class cursor {
+		cursor(GLFWcursor* handle) : m_handle(handle) {}
+
+	public:
+		~cursor() { glfwDestroyCursor(m_handle); }
+
+		static std::optional<cursor> create(image cursorImage, cursor_hotspot_position hotspot = { 0,0 }) {
+			auto cursorHandle = glfwCreateCursor(&cursorImage, hotspot.x, hotspot.y);
+			if (!cursorHandle) return std::nullopt;
+			return cursor{ cursorHandle };
+		}
+
+		static cursor create_standard_cursor(standard_cursor_shape shape) {
+			return cursor{ glfwCreateStandardCursor(static_cast<int>(shape)) };
+		}
+
+		static cursor get_default_cursor() { return cursor{ nullptr }; }
+
+		operator GLFWcursor* () { return m_handle; }
+
+	private:
+		GLFWcursor* m_handle;
+	};
 
 	 /* Window Options */
 	namespace attributes {
@@ -546,7 +583,7 @@ namespace glfw {
 
 		context_robustness_type get_context_robustness() const { return context_robustness_type{ glfwGetWindowAttrib(m_handle, GLFW_CONTEXT_ROBUSTNESS) }; }
 
-
+		void set_cursor(cursor newCursor) { glfwSetCursor(m_handle, newCursor); }
 
 		template<class T>
 		std::remove_cv_t<std::remove_reference_t<std::remove_pointer_t<T>>>* get_user_pointer() const { return static_cast<T*>(glfwGetWindowUserPointer(m_handle)); }
@@ -605,7 +642,7 @@ namespace glfw {
 
 		void get_title(std::string_view title) const { glfwSetWindowTitle(m_handle, title.data()); }
 		/* empty vector has .data = nullptr -> reset to default icon */
-		void set_icon_image(std::vector<icon_image> imageCandidates) { glfwSetWindowIcon(m_handle, static_cast<int>(imageCandidates.size()), imageCandidates.data()); }
+		void set_icon_image(std::vector<image> imageCandidates) { glfwSetWindowIcon(m_handle, static_cast<int>(imageCandidates.size()), imageCandidates.data()); }
 
 		std::optional<monitor> get_fullscreen_monitor() const {
 			GLFWmonitor* mon = glfwGetWindowMonitor(m_handle);
@@ -721,7 +758,7 @@ namespace glfw {
 
 		context_robustness_type get_context_robustness() const { return context_robustness_type{ glfwGetWindowAttrib(m_handle, GLFW_CONTEXT_ROBUSTNESS) }; }
 
-
+		void set_cursor(cursor newCursor) { glfwSetCursor(m_handle, newCursor); }
 
 		template<class T>
 		std::remove_cv_t<std::remove_reference_t<std::remove_pointer_t<T>>>* get_user_pointer() const { return static_cast<T*>(glfwGetWindowUserPointer(m_handle)); }
@@ -780,7 +817,7 @@ namespace glfw {
 
 		void get_title(std::string_view title) const { glfwSetWindowTitle(m_handle, title.data()); }
 		/* empty vector has .data = nullptr -> reset to default icon */
-		void set_icon_image(std::vector<icon_image> imageCandidates) { glfwSetWindowIcon(m_handle, static_cast<int>(imageCandidates.size()), imageCandidates.data()); }
+		void set_icon_image(std::vector<image> imageCandidates) { glfwSetWindowIcon(m_handle, static_cast<int>(imageCandidates.size()), imageCandidates.data()); }
 
 		std::optional<monitor> get_fullscreen_monitor() const {
 			GLFWmonitor* mon = glfwGetWindowMonitor(m_handle);
