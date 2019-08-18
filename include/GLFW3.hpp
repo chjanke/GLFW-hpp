@@ -998,7 +998,7 @@ namespace glfw {
 		RELEASE,
 	};
 
-	enum key_modifier_type : int {
+	enum key_modifier_flags : int {
 		SHIFT,
 		CONTROL,
 		ALT,
@@ -1008,10 +1008,11 @@ namespace glfw {
 	};
 
 	struct key_event {
+		window_ref window;
 		key_type key;
 		int scancode;
 		key_action_type action;
-		key_modifier_type modifiers;
+		key_modifier_flags modifiers;
 	};
 
 	namespace detail {
@@ -1035,56 +1036,38 @@ namespace glfw {
 			}
 
 			inline void glfw_window_pos_callback(GLFWwindow* sourceWindow, int, int) {
-				auto cb = window_callbacks.find(sourceWindow);
-				if (cb == window_callbacks.end()) return;
-				if (cb->second.mask & POSITION_CHANGED) cb->second.callback(window_ref{ sourceWindow });
+				if (auto cb = window_callbacks.find(sourceWindow); cb != window_callbacks.end() && cb->second.mask & POSITION_CHANGED && cb->second.callback) cb->second.callback(window_ref{ sourceWindow });
 			}
 
 			inline void glfw_window_size_callback(GLFWwindow* sourceWindow, int, int) {
-				auto cb = window_callbacks.find(sourceWindow);
-				if (cb == window_callbacks.end()) return;
-				if (cb->second.mask & SIZE_CHANGED) cb->second.callback(window_ref{ sourceWindow });
+				if (auto cb = window_callbacks.find(sourceWindow); cb != window_callbacks.end() && cb->second.mask & SIZE_CHANGED && cb->second.callback) cb->second.callback(window_ref{ sourceWindow });
 			}
 
 			inline void glfw_framebuffer_size_callback(GLFWwindow* sourceWindow, int, int) {
-				auto cb = window_callbacks.find(sourceWindow);
-				if (cb == window_callbacks.end()) return;
-				if (cb->second.mask & FRAMEBUFFER_SIZE_CHANGED) cb->second.callback(window_ref{ sourceWindow });
+				if (auto cb = window_callbacks.find(sourceWindow); cb != window_callbacks.end() && cb->second.mask & FRAMEBUFFER_SIZE_CHANGED && cb->second.callback) cb->second.callback(window_ref{ sourceWindow });
 			}
 
 			inline void glfw_window_content_scale_callback(GLFWwindow* sourceWindow, float, float) {
-				auto cb = window_callbacks.find(sourceWindow);
-				if (cb == window_callbacks.end()) return;
-				if (cb->second.mask & CONTENT_SCALE_CHANGED) cb->second.callback(window_ref{ sourceWindow });
+				if (auto cb = window_callbacks.find(sourceWindow); cb != window_callbacks.end() && cb->second.mask & CONTENT_SCALE_CHANGED && cb->second.callback) cb->second.callback(window_ref{ sourceWindow });
 			}
 
 			inline void glfw_window_focus_callback(GLFWwindow* sourceWindow, int) {
-				auto cb = window_callbacks.find(sourceWindow);
-				if (cb == window_callbacks.end()) return;
-				if (cb->second.mask & FOCUS_CHANGED) cb->second.callback(window_ref{ sourceWindow });
+				if (auto cb = window_callbacks.find(sourceWindow); cb != window_callbacks.end() && cb->second.mask & FOCUS_CHANGED && cb->second.callback) cb->second.callback(window_ref{ sourceWindow });
 			}
 
 			inline void glfw_window_minimize_callback(GLFWwindow* sourceWindow, int) {
-				auto cb = window_callbacks.find(sourceWindow);
-				if (cb == window_callbacks.end()) return;
-				if (cb->second.mask & MINIMIZE_STATE_CHANGED) cb->second.callback(window_ref{ sourceWindow });
+				if (auto cb = window_callbacks.find(sourceWindow); cb != window_callbacks.end() && cb->second.mask & MINIMIZE_STATE_CHANGED && cb->second.callback) cb->second.callback(window_ref{ sourceWindow });
 			}
 
 			inline void glfw_window_maximize_callback(GLFWwindow* sourceWindow, int) {
-				auto cb = window_callbacks.find(sourceWindow);
-				if (cb == window_callbacks.end()) return;
-				if (cb->second.mask & MAXIMIZE_STATE_CHANGED) cb->second.callback(window_ref{ sourceWindow });
+				if (auto cb = window_callbacks.find(sourceWindow); cb != window_callbacks.end() && cb->second.mask & MAXIMIZE_STATE_CHANGED && cb->second.callback) cb->second.callback(window_ref{ sourceWindow });
 			}
 
 			inline void glfw_window_refresh_callback(GLFWwindow* sourceWindow) {
-				auto cb = window_callbacks.find(sourceWindow);
-				if (cb == window_callbacks.end()) return;
-				if (cb->second.mask & CONTENT_NEEDS_REFRESH) cb->second.callback(window_ref{ sourceWindow });
+				if (auto cb = window_callbacks.find(sourceWindow); cb != window_callbacks.end() && cb->second.mask & CONTENT_NEEDS_REFRESH && cb->second.callback) cb->second.callback(window_ref{ sourceWindow });
 			}
 			inline void glfw_window_close_callback(GLFWwindow* sourceWindow) {
-				auto cb = window_callbacks.find(sourceWindow);
-				if (cb == window_callbacks.end()) return;
-				if (cb->second.mask & CLOSE_REQUESTED) cb->second.callback(window_ref{ sourceWindow });
+				if (auto cb = window_callbacks.find(sourceWindow); cb != window_callbacks.end() && cb->second.mask & CLOSE_REQUESTED && cb->second.callback) cb->second.callback(window_ref{ sourceWindow });
 			}
 		};
 
