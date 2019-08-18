@@ -502,23 +502,23 @@ namespace glfw {
 
 		void request_attention() { glfwRequestWindowAttention(m_handle); }
 
-		void set_resizable(bool canResize) { glfwSetWindowAttrib(m_handle, GLFW_RESIZABLE, canResize ? glfw::TRUE : glfw::FALSE); }
+		void set_resizable(bool canResize = true) { glfwSetWindowAttrib(m_handle, GLFW_RESIZABLE, canResize ? glfw::TRUE : glfw::FALSE); }
 
 		bool is_resizable() const { return glfwGetWindowAttrib(m_handle, GLFW_RESIZABLE) == glfw::TRUE; }
 
-		void set_decorated(bool hasDecoration) { glfwSetWindowAttrib(m_handle, GLFW_DECORATED, hasDecoration ? glfw::TRUE : glfw::FALSE); }
+		void set_decorated(bool hasDecoration = true) { glfwSetWindowAttrib(m_handle, GLFW_DECORATED, hasDecoration ? glfw::TRUE : glfw::FALSE); }
 
 		bool is_decorated() const { return glfwGetWindowAttrib(m_handle, GLFW_DECORATED) == glfw::TRUE; }
 
-		void set_floating(bool floating) { glfwSetWindowAttrib(m_handle, GLFW_FLOATING, floating ? glfw::TRUE : glfw::FALSE); }
+		void set_floating(bool floating = true) { glfwSetWindowAttrib(m_handle, GLFW_FLOATING, floating ? glfw::TRUE : glfw::FALSE); }
 
 		bool is_floating() const { return glfwGetWindowAttrib(m_handle, GLFW_FLOATING) == glfw::TRUE; }
 
-		void set_minimize_on_focus_loss(bool minimizeOnFocusLoss) { glfwSetWindowAttrib(m_handle, GLFW_AUTO_ICONIFY, minimizeOnFocusLoss ? glfw::TRUE : glfw::FALSE); }
+		void set_minimize_on_focus_loss(bool minimizeOnFocusLoss = true) { glfwSetWindowAttrib(m_handle, GLFW_AUTO_ICONIFY, minimizeOnFocusLoss ? glfw::TRUE : glfw::FALSE); }
 
 		bool is_minimized_on_focus_loss() const { return glfwGetWindowAttrib(m_handle, GLFW_AUTO_ICONIFY) == glfw::TRUE; }
 
-		void set_focus_on_show(bool focusOnShow) { glfwSetWindowAttrib(m_handle, GLFW_FOCUS_ON_SHOW, focusOnShow ? glfw::TRUE : glfw::FALSE); }
+		void set_focus_on_show(bool focusOnShow = true) { glfwSetWindowAttrib(m_handle, GLFW_FOCUS_ON_SHOW, focusOnShow ? glfw::TRUE : glfw::FALSE); }
 
 		bool is_focused_on_show() const { return glfwGetWindowAttrib(m_handle, GLFW_FOCUS_ON_SHOW) == glfw::TRUE; }
 
@@ -677,23 +677,23 @@ namespace glfw {
 
 		void request_attention() { glfwRequestWindowAttention(m_handle); }
 
-		void set_resizable(bool canResize) { glfwSetWindowAttrib(m_handle, GLFW_RESIZABLE, canResize ? glfw::TRUE : glfw::FALSE); }
+		void set_resizable(bool canResize = true) { glfwSetWindowAttrib(m_handle, GLFW_RESIZABLE, canResize ? glfw::TRUE : glfw::FALSE); }
 
 		bool is_resizable() const { return glfwGetWindowAttrib(m_handle, GLFW_RESIZABLE) == glfw::TRUE; }
 
-		void set_decorated(bool hasDecoration) { glfwSetWindowAttrib(m_handle, GLFW_DECORATED, hasDecoration ? glfw::TRUE : glfw::FALSE); }
+		void set_decorated(bool hasDecoration = true) { glfwSetWindowAttrib(m_handle, GLFW_DECORATED, hasDecoration ? glfw::TRUE : glfw::FALSE); }
 
 		bool is_decorated() const { return glfwGetWindowAttrib(m_handle, GLFW_DECORATED) == glfw::TRUE; }
 
-		void set_floating(bool floating) { glfwSetWindowAttrib(m_handle, GLFW_FLOATING, floating ? glfw::TRUE : glfw::FALSE); }
+		void set_floating(bool floating = true) { glfwSetWindowAttrib(m_handle, GLFW_FLOATING, floating ? glfw::TRUE : glfw::FALSE); }
 
 		bool is_floating() const { return glfwGetWindowAttrib(m_handle, GLFW_FLOATING) == glfw::TRUE; }
 
-		void set_minimize_on_focus_loss(bool minimizeOnFocusLoss) { glfwSetWindowAttrib(m_handle, GLFW_AUTO_ICONIFY, minimizeOnFocusLoss ? glfw::TRUE : glfw::FALSE); }
+		void set_minimize_on_focus_loss(bool minimizeOnFocusLoss = true) { glfwSetWindowAttrib(m_handle, GLFW_AUTO_ICONIFY, minimizeOnFocusLoss ? glfw::TRUE : glfw::FALSE); }
 
 		bool is_minimized_on_focus_loss() const { return glfwGetWindowAttrib(m_handle, GLFW_AUTO_ICONIFY) == glfw::TRUE; }
 
-		void set_focus_on_show(bool focusOnShow) { glfwSetWindowAttrib(m_handle, GLFW_FOCUS_ON_SHOW, focusOnShow ? glfw::TRUE : glfw::FALSE); }
+		void set_focus_on_show(bool focusOnShow = true) { glfwSetWindowAttrib(m_handle, GLFW_FOCUS_ON_SHOW, focusOnShow ? glfw::TRUE : glfw::FALSE); }
 
 		bool is_focused_on_show() const { return glfwGetWindowAttrib(m_handle, GLFW_FOCUS_ON_SHOW) == glfw::TRUE; }
 
