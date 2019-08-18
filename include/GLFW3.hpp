@@ -38,7 +38,7 @@ namespace glfw {
 	inline void post_empty_event() {
 		glfwPostEmptyEvent();
 	}
-	
+
 	/************************************************************************************
 	 *																					*
 	 *									 LIBRARY INIT									*
@@ -412,6 +412,25 @@ namespace glfw {
 		int num, denom;
 	};
 
+	enum window_event_type : uint16_t {
+		POSITION_CHANGED = 1 << 0,
+		SIZE_CHANGED = 1 << 1,
+		FRAMEBUFFER_SIZE_CHANGED = 1 << 2,
+		CONTENT_SCALE_CHANGED = 1 << 3,
+		FOCUS_CHANGED = 1 << 4,
+		MINIMIZE_STATE_CHANGED = 1 << 5,
+		MAXIMIZE_STATE_CHANGED = 1 << 6,
+		CONTENT_NEEDS_REFRESH = 1 << 7,
+		CLOSE_REQUESTED = 1 << 8,
+	};
+	//forward declaration
+	namespace window_events {
+		template<class WindowCallback>
+		void set_event_callback(GLFWwindow*, WindowCallback&&, window_event_type mask);
+		void set_event_callback(GLFWwindow*, std::nullptr_t);
+	}
+
+
 	class window {
 	public:
 		using client_api_type = attributes::client_api_type;
@@ -587,6 +606,10 @@ namespace glfw {
 			return mon ? monitor{ mon } : std::optional<monitor>{ std::nullopt };
 		}
 
+		template<class WindowCallback>
+		void set_event_callback(WindowCallback&& callback, window_event_type mask) { window_events::set_event_callback(m_handle, std::forward<WindowCallback>(callback), mask); }
+		void set_event_callback(std::nullptr_t) { window_events::set_event_callback(m_handle, nullptr); }
+
 		operator GLFWwindow* () { return m_handle; }
 	private:
 		GLFWwindow* m_handle;
@@ -754,6 +777,10 @@ namespace glfw {
 			return mon ? monitor{ mon } : std::optional<monitor>{ std::nullopt };
 		}
 
+		template<class WindowCallback>
+		void set_event_callback(WindowCallback&& callback, window_event_type mask) { window_events::set_event_callback(m_handle, std::forward<WindowCallback>(callback), mask); }
+		void set_event_callback(std::nullptr_t) { window_events::set_event_callback(m_handle, nullptr); }
+
 	private:
 		GLFWwindow* m_handle;
 	};
@@ -840,17 +867,6 @@ namespace glfw {
 		std::string_view description;
 	};
 
-	enum window_event_type : uint16_t {
-		POSITION_CHANGED = 1 << 0,
-		SIZE_CHANGED = 1 << 1,
-		FRAMEBUFFER_SIZE_CHANGED = 1 << 2,
-		CONTENT_SCALE_CHANGED = 1 << 3,
-		FOCUS_CHANGED = 1 << 4,
-		MINIMIZE_STATE_CHANGED = 1 << 5,
-		MAXIMIZE_STATE_CHANGED = 1 << 6,
-		CONTENT_NEEDS_REFRESH = 1 << 7,
-		CLOSE_REQUESTED = 1 << 8,
-	};
 
 	enum class key_type : int {
 		KEY_SPACE = GLFW_KEY_SPACE,
