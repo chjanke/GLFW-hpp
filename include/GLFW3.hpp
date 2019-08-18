@@ -429,6 +429,12 @@ namespace glfw {
 		void set_event_callback(GLFWwindow*, WindowCallback&&, window_event_type mask);
 		void set_event_callback(GLFWwindow*, std::nullptr_t);
 	}
+	enum class code_point : uint32_t;
+	namespace input {
+		template<class KeyCallback>
+		inline void set_key_callback(GLFWwindow*, KeyCallback&&);
+		inline void set_key_callback(GLFWwindow*, std::nullptr_t);
+	}
 
 
 	class window {
@@ -610,6 +616,10 @@ namespace glfw {
 		void set_event_callback(WindowCallback&& callback, window_event_type mask) { window_events::set_event_callback(m_handle, std::forward<WindowCallback>(callback), mask); }
 		void set_event_callback(std::nullptr_t) { window_events::set_event_callback(m_handle, nullptr); }
 
+		template<class KeyCallback>
+		void set_key_callback(KeyCallback&& callback) { input::set_key_callback(m_handle, std::forward<KeyCallback>); }
+		void set_key_callback(std::nullptr_t) { input::set_key_callback(m_handle, nullptr); }
+
 		operator GLFWwindow* () { return m_handle; }
 	private:
 		GLFWwindow* m_handle;
@@ -780,6 +790,10 @@ namespace glfw {
 		template<class WindowCallback>
 		void set_event_callback(WindowCallback&& callback, window_event_type mask) { window_events::set_event_callback(m_handle, std::forward<WindowCallback>(callback), mask); }
 		void set_event_callback(std::nullptr_t) { window_events::set_event_callback(m_handle, nullptr); }
+
+		template<class KeyCallback>
+		void set_key_callback(KeyCallback&& callback) { input::set_key_callback(m_handle, std::forward<KeyCallback>); }
+		void set_key_callback(std::nullptr_t) { input::set_key_callback(m_handle, nullptr); }
 
 	private:
 		GLFWwindow* m_handle;
@@ -990,12 +1004,13 @@ namespace glfw {
 		KEY_RIGHT_ALT = GLFW_KEY_RIGHT_ALT,
 		KEY_RIGHT_SUPER = GLFW_KEY_RIGHT_SUPER,
 		KEY_MENU = GLFW_KEY_MENU,
+		KEY_UNKNOWN = GLFW_KEY_UNKNOWN,
 	};
 
 	enum class key_action_type {
-		PRESS,
-		HOLD,
-		RELEASE,
+		PRESS = GLFW_PRESS,
+		HOLD = GLFW_REPEAT,
+		RELEASE = GLFW_RELEASE,
 	};
 
 	enum key_modifier_flags : int {
@@ -1015,6 +1030,10 @@ namespace glfw {
 		key_modifier_flags modifiers;
 	};
 
+	struct char_event {
+		window_ref window;
+		code_point codepoint;
+	};
 	namespace detail {
 		struct window_callback {
 			std::function<void(window_ref)> callback;
@@ -1022,10 +1041,12 @@ namespace glfw {
 		};
 
 		namespace glfw_callbacks {
-			static std::function<void(error)> error_callback;
-			static std::function<void(monitor_event)> monitor_callback;
-			static std::unordered_map<GLFWwindow*, window_callback> window_callbacks;
-			static std::unordered_map<GLFWwindow*, std::function<void(key_event)>> key_callbacks;
+			inline static std::function<void(error)> error_callback;
+			inline static std::function<void(monitor_event)> monitor_callback;
+			inline static std::unordered_map<GLFWwindow*, window_callback> window_callbacks;
+			inline static std::unordered_map<GLFWwindow*, std::function<void(key_event)>> key_callbacks;
+			inline static std::unordered_map<GLFWwindow*, std::function<void(char_event)>> char_callbacks;
+			inline static std::unordered_map<GLFWwindow*, std::function<void(cursor_event)>> cursor_callbacks;
 
 			inline void glfw_monitor_callback(GLFWmonitor* glfwMonitor, int eventType) {
 				glfw_callbacks::monitor_callback(monitor_event{ monitor{ glfwMonitor }, monitor_event_type{eventType} });
@@ -1034,6 +1055,8 @@ namespace glfw {
 			inline void glfw_error_callback(int error, const char* description) {
 				glfw_callbacks::error_callback(glfw::error{ error_type{ error }, std::string_view{ description } });
 			}
+
+
 
 			inline void glfw_window_pos_callback(GLFWwindow* sourceWindow, int, int) {
 				if (auto cb = window_callbacks.find(sourceWindow); cb != window_callbacks.end() && cb->second.mask & POSITION_CHANGED && cb->second.callback) cb->second.callback(window_ref{ sourceWindow });
@@ -1069,7 +1092,55 @@ namespace glfw {
 			inline void glfw_window_close_callback(GLFWwindow* sourceWindow) {
 				if (auto cb = window_callbacks.find(sourceWindow); cb != window_callbacks.end() && cb->second.mask & CLOSE_REQUESTED && cb->second.callback) cb->second.callback(window_ref{ sourceWindow });
 			}
+
+			inline void glfw_key_callback(GLFWwindow* sourceWindow, int key, int scanCode, int action, int modifiers) {
+				if (auto cb = key_callbacks.find(sourceWindow); cb != key_callbacks.end() && cb->second) cb->second(key_event{ window_ref{sourceWindow}, key_type{key}, scanCode, key_action_type{action}, key_modifier_flags{modifiers} });
+			}
+			
+			inline void glfw_char_callback(GLFWwindow* sourceWindow, uint32_t codepoint) {
+				if (auto cb = char_callbacks.find(sourceWindow); cb != char_callbacks.end() && cb->second) cb->second(char_event{ window_ref{sourceWindow}, code_point{codepoint} });
+			}
 		};
+
+	}
+
+	enum class input_mode : int {
+		STICKY_KEYS,
+		LOCK_KEY_MODIFIERS,
+	};
+
+	namespace input {
+
+		template<class KeyCallback>
+		inline void set_key_callback(GLFWwindow* window, KeyCallback&& callback) {
+			static_assert(std::is_invocable_v<KeyCallback, key_event>);
+			detail::glfw_callbacks::key_callbacks[window] = std::forward<KeyCallback>(callback);
+			glfwSetKeyCallback(window, &detail::glfw_callbacks::glfw_key_callback);
+		}
+
+		inline void set_key_callback(GLFWwindow* window, std::nullptr_t) {
+			detail::glfw_callbacks::key_callbacks[window] = nullptr;
+			glfwSetKeyCallback(window, nullptr);
+		}
+
+		template<class CharCallback>
+		inline void set_char_callback(GLFWwindow* window, CharCallback&& callback) {
+			static_assert(std::is_invocable_v<CharCallback, char_event>);
+			detail::glfw_callbacks::char_callbacks[window] = std::forward<CharCallback>(callback);
+			glfwSetCharCallback(window, &detail::glfw_callbacks::glfw_char_callback);
+		}
+
+		inline void set_char_callback(GLFWwindow* window, std::nullptr_t) {
+			detail::glfw_callbacks::char_callbacks[window] = nullptr;
+			glfwSetCharCallback(window, nullptr);
+		}
+
+		inline int to_scancode(key_type key) { return glfwGetKeyScancode(static_cast<int>(key)); }
+		inline std::string_view key_name(key_type key) { return std::string_view{ glfwGetKeyName(static_cast<int>(key),0) }; }
+		inline std::string_view key_name(int scancode) { return std::string_view{ glfwGetKeyName(0, scancode) }; }
+
+		inline void set_input_mode_state(GLFWwindow* window, input_mode mode, bool value) { glfwSetInputMode(window, static_cast<int>(mode), value ? TRUE : FALSE); }
+		inline key_action_type get_last_key_action(GLFWwindow* window, key_type key) { return key_action_type{ glfwGetKey(window, static_cast<int>(key)) }; }
 
 	}
 
