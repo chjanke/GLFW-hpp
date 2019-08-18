@@ -1078,10 +1078,15 @@ namespace glfw {
 	namespace monitor_events {
 
 		template<class MonitorCallback>
-		inline void set_monitor_event_callback(MonitorCallback&& callback) {
+		inline void set_event_callback(MonitorCallback&& callback) {
 			static_assert(std::is_invocable_v<MonitorCallback, monitor_event>);
 			detail::glfw_callbacks::monitor_callback = std::forward<MonitorCallback>(callback);
 			glfwSetMonitorCallback(&detail::glfw_callbacks::glfw_monitor_callback);
+		}
+
+		inline void set_event_callback(std::nullptr_t) {
+			detail::glfw_callbacks::monitor_callback = nullptr;
+			glfwSetMonitorCallback(nullptr);
 		}
 
 	};
@@ -1090,7 +1095,7 @@ namespace glfw {
 	namespace window_events {
 
 		template<class WindowCallback>
-		inline void set_window_event_handler(GLFWwindow* window, WindowCallback&& callback, window_event_type mask) {
+		inline void set_event_callback(GLFWwindow* window, WindowCallback&& callback, window_event_type mask) {
 			static_assert(std::is_invocable_v<WindowCallback, window_ref>);
 
 			detail::glfw_callbacks::window_callbacks[window] = detail::window_callback{ std::forward<WindowCallback>(callback), mask };
@@ -1106,16 +1111,35 @@ namespace glfw {
 			glfwSetWindowCloseCallback(window, (mask & CLOSE_REQUESTED) == 1 ? &detail::glfw_callbacks::glfw_window_close_callback : nullptr);
 		}
 
+		inline void set_event_callback(GLFWwindow* window, std::nullptr_t) {
+			detail::glfw_callbacks::window_callbacks[window].callback = nullptr;
+
+			glfwSetWindowPosCallback(window, nullptr);
+			glfwSetWindowSizeCallback(window, nullptr);
+			glfwSetFramebufferSizeCallback(window, nullptr);
+			glfwSetWindowContentScaleCallback(window, nullptr);
+			glfwSetWindowFocusCallback(window, nullptr);
+			glfwSetWindowIconifyCallback(window, nullptr);
+			glfwSetWindowMaximizeCallback(window, nullptr);
+			glfwSetWindowRefreshCallback(window, nullptr);
+			glfwSetWindowCloseCallback(window, nullptr);
+		}
+
 	}
 
 
 	namespace errors {
 
 		template<class ErrorCallback>
-		inline void set_error_callback(ErrorCallback&& callback) {
+		inline void set_callback(ErrorCallback&& callback) {
 			static_assert(std::is_invocable_v<ErrorCallback, error>);
 			detail::glfw_callbacks::error_callback = std::forward<ErrorCallback>(callback);
 			glfwSetErrorCallback(&detail::glfw_callbacks::glfw_error_callback);
+		}
+
+		inline void set_callback(std::nullptr_t) {
+			detail::glfw_callbacks::error_callback = nullptr;
+			glfwSetErrorCallback(nullptr);
 		}
 
 		inline error getError() {
