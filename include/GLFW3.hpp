@@ -53,7 +53,7 @@ namespace glfw {
 
 	struct init_hint {
 		init_hint_type hint;
-		bool hintValue;
+		bool hintEnabled;
 	};
 
 	class glfw_lib {
@@ -68,7 +68,7 @@ namespace glfw {
 		template<class ...hints>
 		static void init_hints(hints... initHints) {
 			static_assert((std::is_same_v<init_hint, hints> && ...));
-			(glfwInitHint(static_cast<int>(initHints.hint), initHints.hintValue ? TRUE : FALSE), ...);
+			(glfwInitHint(static_cast<int>(initHints.hint), initHints.hintEnabled ? TRUE : FALSE), ...);
 		}
 		static void init() {
 			static glfw_lib libInstance;
@@ -382,12 +382,12 @@ namespace glfw {
 
 		struct string_hint {
 			string_hint_type hint;
-			std::string value;
+			std::string text;
 		};
 
 		struct hint {
 			hint_type hint;
-			bool value;
+			bool enabled;
 		};
 
 		struct value_hint {
@@ -561,7 +561,7 @@ namespace glfw {
 
 		bool get_close_request() { return glfwWindowShouldClose(m_handle); }
 
-		void set_close_request(bool value = true) { glfwSetWindowShouldClose(m_handle, value ? glfw::TRUE : glfw::FALSE); }
+		void set_close_request(bool enabled = true) { glfwSetWindowShouldClose(m_handle, enabled ? glfw::TRUE : glfw::FALSE); }
 
 		bool is_hovered() const { return glfwGetWindowAttrib(m_handle, GLFW_HOVERED) == glfw::TRUE; }
 
@@ -736,7 +736,7 @@ namespace glfw {
 
 		bool get_close_request() { return glfwWindowShouldClose(m_handle); }
 
-		void set_close_request(bool value = true) { glfwSetWindowShouldClose(m_handle, value ? glfw::TRUE : glfw::FALSE); }
+		void set_close_request(bool enabled = true) { glfwSetWindowShouldClose(m_handle, enabled ? glfw::TRUE : glfw::FALSE); }
 
 		bool is_hovered() const { return glfwGetWindowAttrib(m_handle, GLFW_HOVERED) == glfw::TRUE; }
 
@@ -861,14 +861,14 @@ namespace glfw {
 			static_assert((detail::is_variant_member_v<hint_ts, attributes::window_hints> && ...));
 			(m_hints.emplace_back(std::forward<hint_ts>(hints)), ...);
 		}
-		static void apply_hint(attributes::hint const& windowHint) { glfwWindowHint(static_cast<int>(windowHint.hint), static_cast<int>(windowHint.value)); }
+		static void apply_hint(attributes::hint const& windowHint) { glfwWindowHint(static_cast<int>(windowHint.hint), windowHint.enabled ? TRUE : FALSE); }
 		static void apply_hint(attributes::value_hint const& windowHint) { glfwWindowHint(static_cast<int>(windowHint.hint), static_cast<int>(windowHint.value)); }
 		static void apply_hint(attributes::opengl_profile_hint const& windowHint) { glfwWindowHint(GLFW_OPENGL_PROFILE, static_cast<int>(windowHint.profile)); }
 		static void apply_hint(attributes::robustness_hint const& windowHint) { glfwWindowHint(GLFW_CONTEXT_ROBUSTNESS, static_cast<int>(windowHint.robustness)); }
 		static void apply_hint(attributes::client_api_hint const& windowHint) { glfwWindowHint(GLFW_CLIENT_API, static_cast<int>(windowHint.api)); }
 		static void apply_hint(attributes::context_creation_api_hint const& windowHint) { glfwWindowHint(GLFW_CONTEXT_CREATION_API, static_cast<int>(windowHint.api)); }
 		static void apply_hint(attributes::context_release_behaviour_hint const& windowHint) { glfwWindowHint(GLFW_CONTEXT_RELEASE_BEHAVIOR, static_cast<int>(windowHint.behaviour)); }
-		static void apply_hint(attributes::string_hint const& windowHint) { glfwWindowHintString(static_cast<int>(windowHint.hint), windowHint.value.c_str()); }
+		static void apply_hint(attributes::string_hint const& windowHint) { glfwWindowHintString(static_cast<int>(windowHint.hint), windowHint.text.c_str()); }
 		static void restore_defaults() { glfwDefaultWindowHints(); }
 
 		window create(window_size size, std::string_view title, std::optional<monitor> fullscreenLocation = std::nullopt, window* sharedContext = nullptr) {
