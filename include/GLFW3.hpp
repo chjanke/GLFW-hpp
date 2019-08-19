@@ -1044,13 +1044,13 @@ namespace glfw {
 		KEY_UNKNOWN = GLFW_KEY_UNKNOWN,
 	};
 
-	enum class key_action_type {
+	enum class key_action : int {
 		PRESS = GLFW_PRESS,
 		HOLD = GLFW_REPEAT,
 		RELEASE = GLFW_RELEASE,
 	};
 
-	enum key_modifier_flags : int {
+	enum modifier_flags : int {
 		SHIFT,
 		CONTROL,
 		ALT,
@@ -1063,8 +1063,8 @@ namespace glfw {
 		window_ref window;
 		key_type key;
 		int scancode;
-		key_action_type action;
-		key_modifier_flags modifiers;
+		key_action action;
+		modifier_flags modifiers;
 	};
 
 	struct char_event {
@@ -1081,19 +1081,139 @@ namespace glfw {
 		cursor_position pos;
 	};
 
+	//todo inherit window_ref ?
+	struct cursor_enter_event {
+		window_ref window;
+		bool entered;
+	};
+
+	enum class mouse_button_type : int {
+		BUTTON_LEFT = GLFW_MOUSE_BUTTON_LEFT,
+		BUTTON_RIGHT = GLFW_MOUSE_BUTTON_RIGHT,
+		BUTTON_MIDDLE = GLFW_MOUSE_BUTTON_MIDDLE,
+		BUTTON_1 = GLFW_MOUSE_BUTTON_1,
+		BUTTON_2 = GLFW_MOUSE_BUTTON_2,
+		BUTTON_3 = GLFW_MOUSE_BUTTON_3,
+		BUTTON_4 = GLFW_MOUSE_BUTTON_4,
+		BUTTON_5 = GLFW_MOUSE_BUTTON_5,
+		BUTTON_6 = GLFW_MOUSE_BUTTON_6,
+		BUTTON_7 = GLFW_MOUSE_BUTTON_7,
+		BUTTON_8 = GLFW_MOUSE_BUTTON_8,
+	};
+
+	enum class mouse_button_action : int {
+		PRESSED = GLFW_PRESS,
+		RELEASED = GLFW_RELEASE,
+	};
+
+	struct mouse_button_event {
+		window_ref window;
+		mouse_button_type button;
+		mouse_button_action action;
+		modifier_flags modifiers;
+	};
+
+	struct mouse_scroll_offset {
+		double xOffset, yOffset;
+	};
+
+	struct mouse_scroll_event {
+		window_ref window;
+		mouse_scroll_offset scroll;
+	};
+
+	enum class joystick_id : int {
+		JOYSTICK_1 = GLFW_JOYSTICK_1,
+		JOYSTICK_2 = GLFW_JOYSTICK_2,
+		JOYSTICK_3 = GLFW_JOYSTICK_3,
+		JOYSTICK_4 = GLFW_JOYSTICK_4,
+		JOYSTICK_5 = GLFW_JOYSTICK_5,
+		JOYSTICK_6 = GLFW_JOYSTICK_6,
+		JOYSTICK_7 = GLFW_JOYSTICK_7,
+		JOYSTICK_8 = GLFW_JOYSTICK_8,
+		JOYSTICK_9 = GLFW_JOYSTICK_9,
+		JOYSTICK_10 = GLFW_JOYSTICK_10,
+		JOYSTICK_11 = GLFW_JOYSTICK_11,
+		JOYSTICK_12 = GLFW_JOYSTICK_12,
+		JOYSTICK_13 = GLFW_JOYSTICK_13,
+		JOYSTICK_14 = GLFW_JOYSTICK_14,
+		JOYSTICK_15 = GLFW_JOYSTICK_15,
+		JOYSTICK_16 = GLFW_JOYSTICK_16,
+	};
+
+	struct joystick_axes {
+		using axis_input = float;
+		axis_input const* axes;
+		int count;
+		float operator[](size_t axis) { return axes[axis]; }
+		static constexpr float axis_min = -1.0f;
+		static constexpr float axis_max = 1.0f;
+	};
+
+	enum class joystick_button_action : unsigned char {
+		PRESSED = GLFW_PRESS,
+		RELEASED = GLFW_RELEASE,
+	};
+
+	enum class joystick_hat_action : unsigned char {
+		CENTERED = GLFW_HAT_CENTERED,
+		UP = GLFW_HAT_UP,
+		RIGHT = GLFW_HAT_RIGHT,
+		DOWN = GLFW_HAT_DOWN,
+		LEFT = GLFW_HAT_LEFT,
+		RIGHT_UP = GLFW_HAT_RIGHT_UP,
+		RIGHT_DOWN = GLFW_HAT_RIGHT_DOWN,
+		LEFT_UP = GLFW_HAT_LEFT_UP,
+		LEFT_DOWN = GLFW_HAT_LEFT_DOWN,
+	};
+
+	struct joystick_buttons {
+		using joystick_button = unsigned char;
+		joystick_button const* buttons;
+		int count;
+		joystick_button_action operator[](size_t buttonIndex) { return joystick_button_action{ buttons[buttonIndex] }; }
+	};
+
+	struct joystick_hats {
+		using joystick_hat = unsigned char;
+		joystick_hat const* hats;
+		int count;
+		joystick_hat_action operator[](size_t hatIndex) { return joystick_hat_action{ hats[hatIndex] }; }
+	};
+
+	enum class joystick_state : int {
+		CONNECTED = GLFW_CONNECTED,
+		DISCONNECTED = GLFW_DISCONNECTED,
+	};
+
+	struct joystick_event {
+		joystick_id joystick;
+		joystick_state state;
+	};
+
 	namespace detail {
 		struct window_callback {
 			std::function<void(window_ref)> callback;
 			uint16_t mask;
-		};		
+		};
 
 		namespace glfw_callbacks {
 			inline static std::function<void(error)> error_callback;
+
 			inline static std::function<void(monitor_event)> monitor_callback;
+
 			inline static std::unordered_map<GLFWwindow*, window_callback> window_callbacks;
+
 			inline static std::unordered_map<GLFWwindow*, std::function<void(key_event)>> key_callbacks;
 			inline static std::unordered_map<GLFWwindow*, std::function<void(char_event)>> char_callbacks;
+
 			inline static std::unordered_map<GLFWwindow*, std::function<void(cursor_event)>> cursor_callbacks;
+			inline static std::unordered_map<GLFWwindow*, std::function<void(cursor_enter_event)>> cursor_enter_callbacks;
+			inline static std::unordered_map<GLFWwindow*, std::function<void(mouse_button_event)>> mouse_button_callbacks;
+			inline static std::unordered_map<GLFWwindow*, std::function<void(mouse_scroll_event)>> mouse_scroll_callbacks;
+
+			inline static std::function<void(joystick_event)> joystick_callback;
+
 
 
 			inline void glfw_monitor_callback(GLFWmonitor* glfwMonitor, int eventType) {
@@ -1143,7 +1263,7 @@ namespace glfw {
 
 
 			inline void glfw_key_callback(GLFWwindow* sourceWindow, int key, int scanCode, int action, int modifiers) {
-				if (auto cb = key_callbacks.find(sourceWindow); cb != key_callbacks.end() && cb->second) cb->second(key_event{ window_ref{sourceWindow}, key_type{key}, scanCode, key_action_type{action}, key_modifier_flags{modifiers} });
+				if (auto cb = key_callbacks.find(sourceWindow); cb != key_callbacks.end() && cb->second) cb->second(key_event{ window_ref{sourceWindow}, key_type{key}, scanCode, key_action{action}, modifier_flags{modifiers} });
 			}
 
 			inline void glfw_char_callback(GLFWwindow* sourceWindow, uint32_t codepoint) {
@@ -1154,8 +1274,25 @@ namespace glfw {
 			inline void glfw_cursor_callback(GLFWwindow* sourceWindow, double xpos, double ypos) {
 				if (auto cb = cursor_callbacks.find(sourceWindow); cb != cursor_callbacks.end() && cb->second) cb->second(cursor_event{ window_ref{sourceWindow}, cursor_position{xpos,ypos} });
 			}
-		};
 
+			inline void glfw_cursor_enter_callback(GLFWwindow* sourceWindow, int entered) {
+				if (auto cb = cursor_enter_callbacks.find(sourceWindow); cb != cursor_enter_callbacks.end() && cb->second) cb->second(cursor_enter_event{ window_ref{sourceWindow}, entered == GLFW_TRUE });
+			}
+
+			inline void glfw_mouse_button_callback(GLFWwindow* sourceWindow, int button, int action, int mods) {
+				if (auto cb = mouse_button_callbacks.find(sourceWindow); cb != mouse_button_callbacks.end() && cb->second) cb->second(mouse_button_event{ window_ref{sourceWindow}, mouse_button_type{button}, mouse_button_action{action}, modifier_flags{mods} });
+			}
+
+			inline void glfw_mouse_scroll_callback(GLFWwindow* sourceWindow, double xOffset, double yOffset) {
+				if (auto cb = mouse_scroll_callbacks.find(sourceWindow); cb != mouse_scroll_callbacks.end() && cb->second) cb->second(mouse_scroll_event{ window_ref{sourceWindow}, mouse_scroll_offset{xOffset, yOffset} });
+			}
+
+
+
+			inline void glfw_joystick_callback(int id, int event) {
+				if (joystick_callback) joystick_callback(joystick_event{ joystick_id{id}, joystick_state{event} });
+			}
+		}
 	}
 
 	enum class key_input_mode : int {
@@ -1170,6 +1307,30 @@ namespace glfw {
 	};
 
 	namespace input {
+
+		/* Keyboard and Mouse */
+
+		inline int to_scancode(key_type key) { return glfwGetKeyScancode(static_cast<int>(key)); }
+		inline std::string_view key_name(key_type key) { return std::string_view{ glfwGetKeyName(static_cast<int>(key),0) }; }
+		inline std::string_view key_name(int scancode) { return std::string_view{ glfwGetKeyName(0, scancode) }; }
+
+		inline void set_key_input_mode_state(GLFWwindow* window, key_input_mode mode, bool enabled) { glfwSetInputMode(window, static_cast<int>(mode), enabled ? TRUE : FALSE); }
+		inline key_action get_last_key_action(GLFWwindow* window, key_type key) { return key_action{ glfwGetKey(window, static_cast<int>(key)) }; }
+		inline cursor_position get_cursor_position(GLFWwindow* window) {
+			cursor_position pos;
+			glfwGetCursorPos(window, &pos.x, &pos.y);
+			return pos;
+		}
+		inline mouse_button_action get_mouse_button_action(GLFWwindow* window, mouse_button_type button) {
+			return mouse_button_action{ glfwGetMouseButton(window, static_cast<int>(button)) };
+		}
+		inline void set_sticky_mouse_input_mode(GLFWwindow* window, bool enabled) { glfwSetInputMode(window, GLFW_STICKY_MOUSE_BUTTONS, enabled ? TRUE : FALSE); }
+		inline void set_cursor_input_mode(GLFWwindow* window, cursor_input_mode mode) {
+			glfwSetInputMode(window, GLFW_CURSOR, static_cast<int>(mode));
+		}
+		inline void use_raw_cursor(GLFWwindow* window, bool enabled = true) {
+			glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, enabled ? TRUE : FALSE);
+		}
 
 		template<class KeyCallback>
 		inline void set_key_callback(GLFWwindow* window, KeyCallback&& callback) {
@@ -1207,23 +1368,59 @@ namespace glfw {
 			glfwSetCursorPosCallback(window, nullptr);
 		}
 
-		inline int to_scancode(key_type key) { return glfwGetKeyScancode(static_cast<int>(key)); }
-		inline std::string_view key_name(key_type key) { return std::string_view{ glfwGetKeyName(static_cast<int>(key),0) }; }
-		inline std::string_view key_name(int scancode) { return std::string_view{ glfwGetKeyName(0, scancode) }; }
+		template<class CursorEnterCallback>
+		inline void set_cursor_enter_callback(GLFWwindow* window, CursorEnterCallback&& callback) {
+			static_assert(std::is_invocable_v<CursorEnterCallback, cursor_enter_event>);
+			detail::glfw_callbacks::cursor_enter_callbacks[window] = std::forward<CursorEnterCallback>(callback);
+			glfwSetCursorEnterCallback(window, &detail::glfw_callbacks::glfw_cursor_enter_callback);
+		}
 
-		inline void set_key_input_mode_state(GLFWwindow* window, key_input_mode mode, bool value) { glfwSetInputMode(window, static_cast<int>(mode), value ? TRUE : FALSE); }
-		inline key_action_type get_last_key_action(GLFWwindow* window, key_type key) { return key_action_type{ glfwGetKey(window, static_cast<int>(key)) }; }
-		inline cursor_position get_cursor_position(GLFWwindow* window) {
-			cursor_position pos;
-			glfwGetCursorPos(window, &pos.x, &pos.y);
-			return pos;
+		inline void set_cursor_enter_callback(GLFWwindow* window, std::nullptr_t) {
+			detail::glfw_callbacks::cursor_enter_callbacks[window] = nullptr;
+			glfwSetCursorEnterCallback(window, nullptr);
 		}
-		inline void set_cursor_input_mode(GLFWwindow* window, cursor_input_mode mode) {
-			glfwSetInputMode(window, GLFW_CURSOR, static_cast<int>(mode));
+
+		template<class MouseButtonCallback>
+		inline void set_mouse_button_callback(GLFWwindow* window, MouseButtonCallback&& callback) {
+			static_assert(std::is_invocable_v<MouseButtonCallback, mouse_button_event>);
+			detail::glfw_callbacks::mouse_button_callbacks[window] = std::forward<MouseButtonCallback>(callback);
+			glfwSetMouseButtonCallback(window, &detail::glfw_callbacks::glfw_mouse_button_callback);
 		}
-		inline void use_raw_cursor(GLFWwindow* window, bool value = true) {
-			glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, value ? TRUE : FALSE);
+
+		inline void set_mouse_button_callback(GLFWwindow* window, std::nullptr_t) {
+			detail::glfw_callbacks::mouse_button_callbacks[window] = nullptr;
+			glfwSetMouseButtonCallback(window, nullptr);
 		}
+
+		template<class MouseScrollCallback>
+		inline void set_mouse_scroll_callback(GLFWwindow* window, MouseScrollCallback&& callback) {
+			static_assert(std::is_invocable_v<MouseScrollCallback, mouse_scroll_event>);
+			detail::glfw_callbacks::mouse_scroll_callbacks[window] = std::forward<MouseScrollCallback>(callback);
+			glfwSetScrollCallback(window, &detail::glfw_callbacks::glfw_mouse_scroll_callback);
+		}
+
+		inline void set_mouse_scroll_callback(GLFWwindow* window, std::nullptr_t) {
+			detail::glfw_callbacks::mouse_scroll_callbacks[window] = nullptr;
+			glfwSetScrollCallback(window, nullptr);
+		}
+
+		/* Joystick / Controllers */
+
+		bool is_joystick_present(joystick_id joystick) { return glfwJoystickPresent(static_cast<int>(joystick)) == GLFW_TRUE; }
+
+		template<class JoystickCallback>
+		inline void set_joystick_callback(JoystickCallback&& callback) {
+			static_assert(std::is_invocable_v<JoystickCallback, joystick_event>);
+			detail::glfw_callbacks::joystick_callback = std::forward<JoystickCallback>(callback);
+			glfwSetJoystickCallback(&detail::glfw_callbacks::glfw_joystick_callback);
+		}
+
+		inline void set_joystick_callback(std::nullptr_t) {
+			detail::glfw_callbacks::joystick_callback = nullptr;
+			glfwSetJoystickCallback(nullptr);
+		}
+
+		/* Gamepad */
 
 	}
 
