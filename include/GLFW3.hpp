@@ -9,6 +9,7 @@
 #include <functional>
 #include <unordered_map>
 #include <cstdint>
+#include <array>
 
 namespace glfw {
 
@@ -1209,6 +1210,37 @@ namespace glfw {
 		joystick_state state;
 	};
 
+	enum class gamepad_button : size_t {
+		BUTTON_A = GLFW_GAMEPAD_BUTTON_A,
+		BUTTON_B = GLFW_GAMEPAD_BUTTON_B,
+		BUTTON_X = GLFW_GAMEPAD_BUTTON_X,
+		BUTTON_Y = GLFW_GAMEPAD_BUTTON_Y,
+		LEFT_BUMPER = GLFW_GAMEPAD_BUTTON_LEFT_BUMPER,
+		RIGHT_BUMPER = GLFW_GAMEPAD_BUTTON_RIGHT_BUMPER,
+		BACK = GLFW_GAMEPAD_BUTTON_BACK,
+		START = GLFW_GAMEPAD_BUTTON_START,
+		GUIDE = GLFW_GAMEPAD_BUTTON_GUIDE,
+		LEFT_THUMB = GLFW_GAMEPAD_BUTTON_LEFT_THUMB,
+		RIGHT_THUMB = GLFW_GAMEPAD_BUTTON_RIGHT_THUMB,
+		DPAD_UP = GLFW_GAMEPAD_BUTTON_DPAD_UP,
+		DPAD_RIGHT = GLFW_GAMEPAD_BUTTON_DPAD_RIGHT,
+		DPAD_DOWN = GLFW_GAMEPAD_BUTTON_DPAD_DOWN,
+		DPAD_LEFT = GLFW_GAMEPAD_BUTTON_DPAD_LEFT,
+		CROSS = GLFW_GAMEPAD_BUTTON_CROSS,
+		CIRCLE = GLFW_GAMEPAD_BUTTON_CIRCLE,
+		SQUARE = GLFW_GAMEPAD_BUTTON_SQUARE,
+		TRIANGLE = GLFW_GAMEPAD_BUTTON_TRIANGLE,
+	};
+
+	enum class gamepad_axis : size_t {
+		LEFT_X = GLFW_GAMEPAD_AXIS_LEFT_X,
+		LEFT_Y = GLFW_GAMEPAD_AXIS_LEFT_Y,
+		RIGHT_X = GLFW_GAMEPAD_AXIS_RIGHT_X,
+		RIGHT_Y = GLFW_GAMEPAD_AXIS_RIGHT_Y,
+		LEFT_TRIGGER = GLFW_GAMEPAD_AXIS_LEFT_TRIGGER,
+		RIGHT_TRIGGER = GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER,
+	};
+
 	struct drop_event {
 		window_ref window;
 		std::vector<std::string_view> paths;
@@ -1343,6 +1375,33 @@ namespace glfw {
 		HIDDEN = GLFW_CURSOR_HIDDEN,
 	};
 
+	namespace detail {
+		//internal gamepad mappings
+		inline static std::array<GLFWgamepadstate, GLFW_JOYSTICK_LAST> gamepad_states;
+	}
+
+	enum class gamepad_button_state : unsigned char {
+		PRESSED = GLFW_PRESS,
+		RELEASED = GLFW_RELEASE,
+	};
+
+	struct gamepad_state {
+		struct gamepad_buttons {
+			using button = unsigned char;
+			button* gamepad_buttons;
+			gamepad_button_state operator[](gamepad_button buttonIndex) { return gamepad_button_state{ gamepad_buttons[static_cast<size_t>(buttonIndex)] }; }
+		} buttons;
+		struct gamepad_axes {
+			using axis_state = float;
+			axis_state* gamepad_axes;
+			axis_state operator[](gamepad_axis axis) { return gamepad_axes[static_cast<size_t>(axis)]; }
+			static constexpr float axis_state_min = -1.0f;
+			static constexpr float axis_state_max = 1.0f;
+		} axes;
+		static constexpr size_t BUTTON_COUNT = GLFW_GAMEPAD_BUTTON_LAST + 1;
+		static constexpr size_t AXES_COUNT = GLFW_GAMEPAD_AXIS_LAST + 1;
+	};
+
 	namespace input {
 
 		/* Keyboard and Mouse */
@@ -1352,8 +1411,8 @@ namespace glfw {
 		inline std::string_view key_name(int scancode) { return std::string_view{ glfwGetKeyName(0, scancode) }; }
 
 		inline void set_key_input_mode_state(GLFWwindow* window, key_input_mode mode, bool enabled) { glfwSetInputMode(window, static_cast<int>(mode), enabled ? TRUE : FALSE); }
-		inline key_action get_last_key_action(GLFWwindow* window, key_type key) { return key_action{ glfwGetKey(window, static_cast<int>(key)) }; }
-		inline cursor_position get_cursor_position(GLFWwindow* window) {
+		inline key_action last_key_action(GLFWwindow* window, key_type key) { return key_action{ glfwGetKey(window, static_cast<int>(key)) }; }
+		inline cursor_position current_get_cursor_position(GLFWwindow* window) {
 			cursor_position pos;
 			glfwGetCursorPos(window, &pos.x, &pos.y);
 			return pos;
@@ -1443,7 +1502,20 @@ namespace glfw {
 
 		/* Joystick / Controllers */
 
-		bool is_joystick_present(joystick_id joystick) { return glfwJoystickPresent(static_cast<int>(joystick)) == GLFW_TRUE; }
+		inline bool is_joystick_present(joystick_id joystick) { return glfwJoystickPresent(static_cast<int>(joystick)) == GLFW_TRUE; }
+		inline std::string_view joystick_name(joystick_id joystick) {
+			const char* name = glfwGetJoystickName(static_cast<int>(joystick));
+			if (name) return std::string_view{ name };
+			return std::string_view{};
+		}
+		template<class T>
+		std::remove_cv_t<std::remove_reference_t<std::remove_pointer_t<T>>>* get_joystick_user_pointer(joystick_id joystick) { return static_cast<T*>(glfwGetJoystickUserPointer(static_cast<int>(joystick))); }
+
+		template<class T>
+		T set_joystick_user_pointer(joystick_id joystick, T userPointer) {
+			static_assert(std::is_pointer_v<T>, "set_user_pointer only accepts pointer types");
+			glfwSetJoystickUserPointer(static_cast<int>(joystick), static_cast<void*>(userPointer));
+		}
 
 		template<class JoystickCallback>
 		inline void set_joystick_callback(JoystickCallback&& callback) {
@@ -1459,6 +1531,19 @@ namespace glfw {
 
 		/* Gamepad */
 
+		inline bool is_gamepad(joystick_id joystick) { return glfwJoystickIsGamepad(static_cast<int>(joystick)); }
+		inline std::string_view gamepad_name(joystick_id joystick) {
+			const char* name = glfwGetGamepadName(static_cast<int>(joystick));
+			if (name) return std::string_view{ name };
+			return std::string_view{};
+		}
+		inline void update_mappings(std::string_view mappings) { glfwUpdateGamepadMappings(mappings.data()); }
+
+		inline gamepad_state current_gamepad_state(joystick_id joystick) {
+			GLFWgamepadstate* state = &detail::gamepad_states[static_cast<int>(joystick)];
+			glfwGetGamepadState(static_cast<int>(joystick), state);
+			return gamepad_state{ state->buttons, state->axes };
+		}
 	}
 
 
