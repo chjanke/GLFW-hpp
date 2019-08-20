@@ -1209,6 +1209,12 @@ namespace glfw {
 		joystick_state state;
 	};
 
+	struct drop_event {
+		window_ref window;
+		std::vector<std::string_view> paths;
+	};
+
+
 	namespace detail {
 		struct window_callback {
 			std::function<void(window_ref)> callback;
@@ -1229,6 +1235,8 @@ namespace glfw {
 			inline static std::unordered_map<GLFWwindow*, std::function<void(cursor_enter_event)>> cursor_enter_callbacks;
 			inline static std::unordered_map<GLFWwindow*, std::function<void(mouse_button_event)>> mouse_button_callbacks;
 			inline static std::unordered_map<GLFWwindow*, std::function<void(mouse_scroll_event)>> mouse_scroll_callbacks;
+
+			inline static std::unordered_map < GLFWwindow*, std::function<void(drop_event)>> drop_callbacks;
 
 			inline static std::function<void(joystick_event)> joystick_callback;
 
@@ -1277,6 +1285,17 @@ namespace glfw {
 			}
 			inline void glfw_window_close_callback(GLFWwindow* sourceWindow) {
 				if (auto cb = window_callbacks.find(sourceWindow); cb != window_callbacks.end() && cb->second.mask & CLOSE_REQUESTED && cb->second.callback) cb->second.callback(window_ref{ sourceWindow });
+			}
+
+			inline void glfw_drop_callback(GLFWwindow* sourceWindow, int count, const char** paths) {
+				if (auto cb = drop_callbacks.find(sourceWindow); cb != drop_callbacks.end() && cb->second) {
+					drop_event dropEvent{ window_ref{sourceWindow} };
+					dropEvent.paths.reserve(count);
+					for (size_t i = 0; i < count; ++i) {
+						dropEvent.paths.emplace_back(paths[i]);
+					}
+					cb->second(std::move(dropEvent));
+				}
 			}
 
 
@@ -1493,6 +1512,18 @@ namespace glfw {
 			glfwSetWindowCloseCallback(window, nullptr);
 		}
 
+		template<class DropCallback>
+		inline void set_drop_callback(GLFWwindow* window, DropCallback&& callback) {
+			static_assert(std::is_invocable_v<DropCallback, drop_event>);
+
+			detail::glfw_callbacks::drop_callbacks[window] = std::forward<DropCallback>(callback);
+			glfwSetDropCallback(window, &detail::glfw_callbacks::glfw_drop_callback);
+		}
+
+		inline void set_drop_callback(GLFWwindow* window, std::nullptr_t) {
+			detail::glfw_callbacks::drop_callbacks[window] = nullptr;
+			glfwSetDropCallback(window, nullptr);
+		}
 	}
 
 
