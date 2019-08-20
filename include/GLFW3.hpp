@@ -22,6 +22,7 @@ namespace glfw {
 	inline void set_swap_interval(int swapInterval) {
 		glfwSwapInterval(swapInterval);
 	}
+	/* Events */
 
 	inline void poll_events() {
 		glfwPollEvents();
@@ -38,6 +39,23 @@ namespace glfw {
 	inline void post_empty_event() {
 		glfwPostEmptyEvent();
 	}
+
+	/* Time */
+	inline double time() { return glfwGetTime(); }
+	inline uint64_t time_raw() { return glfwGetTimerValue(); }
+	inline uint64_t timer_frequency() { return glfwGetTimerFrequency(); }
+	inline void set_current_time(double seconds) { glfwSetTime(seconds); }
+
+	/* ClipBoard Utility */
+	std::string_view clip_text() {
+		const char* text = glfwGetClipboardString(nullptr);
+		if (text) return std::string_view(text);
+		return std::string_view{};
+	}
+
+	void set_clip_text(std::string_view clipText) { glfwSetClipboardString(nullptr, clipText.data()); }
+
+
 
 	/************************************************************************************
 	 *																					*
@@ -291,7 +309,7 @@ namespace glfw {
 		GLFWcursor* m_handle;
 	};
 
-	 /* Window Options */
+	/* Window Options */
 	namespace attributes {
 
 		enum class client_api_type : int {
@@ -1142,12 +1160,12 @@ namespace glfw {
 	};
 
 	struct joystick_axes {
-		using axis_input = float;
-		axis_input const* axes;
+		using axis_state = float;
+		axis_state const* axes;
 		int count;
-		float operator[](size_t axis) { return axes[axis]; }
-		static constexpr float axis_min = -1.0f;
-		static constexpr float axis_max = 1.0f;
+		axis_state operator[](size_t axis) { return axes[axis]; }
+		static constexpr float axis_state_min = -1.0f;
+		static constexpr float axis_state_max = 1.0f;
 	};
 
 	enum class joystick_button_action : unsigned char {
