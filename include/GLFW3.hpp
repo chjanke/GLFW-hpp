@@ -94,6 +94,12 @@ namespace glfw {
 		}
 	};
 
+#ifndef GLFWHPP_MANUAL_INIT
+	struct glfw_lib_auto_init {
+		glfw_lib_auto_init() { glfw_lib::init(); }
+	} static glfw_lib_auto_init;
+#endif
+
 
 	namespace detail {
 		struct version_base {
