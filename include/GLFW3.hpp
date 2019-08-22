@@ -47,7 +47,7 @@ namespace glfw {
 	inline uint64_t timer_frequency() { return glfwGetTimerFrequency(); }
 	inline void set_current_time(double seconds) { glfwSetTime(seconds); }
 
-	/* ClipBoard Utility */
+	/* Clipboard Utility */
 	std::string_view clip_text() {
 		const char* text = glfwGetClipboardString(nullptr);
 		if (text) return std::string_view(text);
@@ -479,6 +479,7 @@ namespace glfw {
 		CONTENT_NEEDS_REFRESH = 1 << 7,
 		CLOSE_REQUESTED = 1 << 8,
 	};
+
 	//forward declaration
 	namespace window_events {
 		template<class WindowCallback>
@@ -491,7 +492,7 @@ namespace glfw {
 		inline void set_key_callback(GLFWwindow*, KeyCallback&&);
 		inline void set_key_callback(GLFWwindow*, std::nullptr_t);
 	}
-
+	/* TODO: add set_xxx_callback to window api */
 
 	class window {
 	public:
@@ -938,7 +939,7 @@ namespace glfw {
 	};
 
 
-	enum class key_type : int {
+	enum class key : int {
 		KEY_SPACE = GLFW_KEY_SPACE,
 		KEY_APOSTROPHE = GLFW_KEY_APOSTROPHE,
 		KEY_COMMA = GLFW_KEY_COMMA,
@@ -1080,7 +1081,7 @@ namespace glfw {
 
 	struct key_event {
 		window_ref window;
-		key_type key;
+		key key;
 		int scancode;
 		key_action action;
 		modifier_flags modifiers;
@@ -1100,13 +1101,12 @@ namespace glfw {
 		cursor_position pos;
 	};
 
-	//todo inherit window_ref ?
 	struct cursor_enter_event {
 		window_ref window;
 		bool entered;
 	};
 
-	enum class mouse_button_type : int {
+	enum class mouse_button : int {
 		BUTTON_LEFT = GLFW_MOUSE_BUTTON_LEFT,
 		BUTTON_RIGHT = GLFW_MOUSE_BUTTON_RIGHT,
 		BUTTON_MIDDLE = GLFW_MOUSE_BUTTON_MIDDLE,
@@ -1127,7 +1127,7 @@ namespace glfw {
 
 	struct mouse_button_event {
 		window_ref window;
-		mouse_button_type button;
+		mouse_button button;
 		mouse_button_action action;
 		modifier_flags modifiers;
 	};
@@ -1332,7 +1332,7 @@ namespace glfw {
 
 
 			inline void glfw_key_callback(GLFWwindow* sourceWindow, int key, int scanCode, int action, int modifiers) {
-				if (auto cb = key_callbacks.find(sourceWindow); cb != key_callbacks.end() && cb->second) cb->second(key_event{ window_ref{sourceWindow}, key_type{key}, scanCode, key_action{action}, modifier_flags{modifiers} });
+				if (auto cb = key_callbacks.find(sourceWindow); cb != key_callbacks.end() && cb->second) cb->second(key_event{ window_ref{sourceWindow}, glfw::key{key}, scanCode, key_action{action}, modifier_flags{modifiers} });
 			}
 
 			inline void glfw_char_callback(GLFWwindow* sourceWindow, uint32_t codepoint) {
@@ -1349,7 +1349,7 @@ namespace glfw {
 			}
 
 			inline void glfw_mouse_button_callback(GLFWwindow* sourceWindow, int button, int action, int mods) {
-				if (auto cb = mouse_button_callbacks.find(sourceWindow); cb != mouse_button_callbacks.end() && cb->second) cb->second(mouse_button_event{ window_ref{sourceWindow}, mouse_button_type{button}, mouse_button_action{action}, modifier_flags{mods} });
+				if (auto cb = mouse_button_callbacks.find(sourceWindow); cb != mouse_button_callbacks.end() && cb->second) cb->second(mouse_button_event{ window_ref{sourceWindow}, mouse_button{button}, mouse_button_action{action}, modifier_flags{mods} });
 			}
 
 			inline void glfw_mouse_scroll_callback(GLFWwindow* sourceWindow, double xOffset, double yOffset) {
@@ -1406,18 +1406,18 @@ namespace glfw {
 
 		/* Keyboard and Mouse */
 
-		inline int to_scancode(key_type key) { return glfwGetKeyScancode(static_cast<int>(key)); }
-		inline std::string_view key_name(key_type key) { return std::string_view{ glfwGetKeyName(static_cast<int>(key),0) }; }
+		inline int to_scancode(key key) { return glfwGetKeyScancode(static_cast<int>(key)); }
+		inline std::string_view key_name(key key) { return std::string_view{ glfwGetKeyName(static_cast<int>(key),0) }; }
 		inline std::string_view key_name(int scancode) { return std::string_view{ glfwGetKeyName(0, scancode) }; }
 
 		inline void set_key_input_mode_state(GLFWwindow* window, key_input_mode mode, bool enabled) { glfwSetInputMode(window, static_cast<int>(mode), enabled ? TRUE : FALSE); }
-		inline key_action last_key_action(GLFWwindow* window, key_type key) { return key_action{ glfwGetKey(window, static_cast<int>(key)) }; }
+		inline key_action last_key_action(GLFWwindow* window, key key) { return key_action{ glfwGetKey(window, static_cast<int>(key)) }; }
 		inline cursor_position current_get_cursor_position(GLFWwindow* window) {
 			cursor_position pos;
 			glfwGetCursorPos(window, &pos.x, &pos.y);
 			return pos;
 		}
-		inline mouse_button_action get_mouse_button_action(GLFWwindow* window, mouse_button_type button) {
+		inline mouse_button_action get_mouse_button_action(GLFWwindow* window, mouse_button button) {
 			return mouse_button_action{ glfwGetMouseButton(window, static_cast<int>(button)) };
 		}
 		inline void set_sticky_mouse_input_mode(GLFWwindow* window, bool enabled) { glfwSetInputMode(window, GLFW_STICKY_MOUSE_BUTTONS, enabled ? TRUE : FALSE); }
