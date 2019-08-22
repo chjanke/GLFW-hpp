@@ -95,9 +95,11 @@ namespace glfw {
 	};
 
 #ifndef GLFWHPP_MANUAL_INIT
-	struct glfw_lib_auto_init {
-		glfw_lib_auto_init() { glfw_lib::init(); }
-	} static glfw_lib_auto_init;
+	namespace detail {
+		struct glfw_lib_auto_init {
+			glfw_lib_auto_init() { glfw_lib::init(); }
+		} static glfw_lib_auto_init;
+	}
 #endif
 
 
@@ -1416,7 +1418,7 @@ namespace glfw {
 		inline std::string_view key_name(key key) { return std::string_view{ glfwGetKeyName(static_cast<int>(key),0) }; }
 		inline std::string_view key_name(int scancode) { return std::string_view{ glfwGetKeyName(0, scancode) }; }
 
-		inline void set_key_input_mode_state(GLFWwindow* window, key_input_mode mode, bool enabled) { glfwSetInputMode(window, static_cast<int>(mode), enabled ? TRUE : FALSE); }
+		inline void set_key_input_mode(GLFWwindow* window, key_input_mode mode, bool enabled) { glfwSetInputMode(window, static_cast<int>(mode), enabled ? TRUE : FALSE); }
 		inline key_action last_key_action(GLFWwindow* window, key key) { return key_action{ glfwGetKey(window, static_cast<int>(key)) }; }
 		inline cursor_position current_get_cursor_position(GLFWwindow* window) {
 			cursor_position pos;
